@@ -1,6 +1,7 @@
 package danandroid.course.contactsprovider;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -10,13 +11,22 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
-public class MainActivity extends AppCompatActivity {
+import java.util.List;
+
+import danandroid.course.contactsprovider.models.Contact;
+
+public class MainActivity extends AppCompatActivity implements ContactsDataSource.OnContactsArrivedListener {
 
     private static final int RC_CONTACTS = 0;
 
@@ -42,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        ContactsDataSource.getContacts(this/*context*/);
+        ContactsDataSource.getContactAsync(this/*context*/, this/*litener*/);
 
     }
 
@@ -94,5 +104,61 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onContactsArrived(List<Contact> data) {
+        RecyclerView rvContacts = (RecyclerView) findViewById(R.id.rvContacts);
+        rvContacts.setAdapter(new ContactAdapter(this, data));
+        rvContacts.setLayoutManager(new LinearLayoutManager(this));
+    }
+
+    static class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ContactViewHolder> {
+        private Context context;
+        private List<Contact> data;
+
+        public ContactAdapter(Context context, List<Contact> data) {
+            this.context = context;
+            this.data = data;
+        }
+
+        @Override
+        public ContactViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            LayoutInflater inflater = LayoutInflater.from(context);
+            View v = inflater.inflate(R.layout.contact_item, parent, false);
+            return new ContactViewHolder(v);//view->Context -> Inflater
+        }
+        @Override
+        public void onBindViewHolder(ContactViewHolder holder, int position) {
+            Contact contact = data.get(position);
+
+            holder.tvNames.setText(contact.getName());
+            holder.tvEmails.setText(contact.getEmails().toString());
+            holder.tvPhones.setText(contact.getPhones().toString());
+
+            holder.model = contact;
+            holder.context = context;
+        }
+        @Override
+        public int getItemCount() {
+            return data.size();
+        }
+
+        //ViewHolder//Adapter
+        static class ContactViewHolder extends RecyclerView.ViewHolder {
+            TextView tvNames;
+            TextView tvEmails;
+            TextView tvPhones;
+
+            Context context;
+            Contact model;
+
+            public ContactViewHolder(View itemView) {
+                super(itemView);
+                tvEmails = itemView.findViewById(R.id.tvEmails);
+                tvNames = itemView.findViewById(R.id.tvNames);
+                tvPhones = itemView.findViewById(R.id.tvPhones);
+            }
+        }
     }
 }
